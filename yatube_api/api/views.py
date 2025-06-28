@@ -5,8 +5,6 @@ from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
     IsAuthenticated,
 )
-from rest_framework.response import Response
-from rest_framework.pagination import LimitOffsetPagination
 
 from posts.models import Post, Group, Follow
 from .serializers import (
@@ -16,6 +14,7 @@ from .serializers import (
     FollowSerializer,
 )
 from .permissions import IsAuthorOrReadOnlyPermission
+from .pagination import ConditionalPagination
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -25,22 +24,10 @@ class PostViewSet(viewsets.ModelViewSet):
         IsAuthenticatedOrReadOnly,
         IsAuthorOrReadOnlyPermission,
     ]
-    pagination_class = LimitOffsetPagination
+    pagination_class = ConditionalPagination
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-
-        if "limit" in request.query_params or "offset" in request.query_params:
-            page = self.paginate_queryset(queryset)
-            if page is not None:
-                serializer = self.get_serializer(page, many=True)
-                return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
