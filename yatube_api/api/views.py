@@ -27,18 +27,20 @@ class PostViewSet(viewsets.ModelViewSet):
     ]
     pagination_class = LimitOffsetPagination
 
-    def paginate_queryset(self, queryset):
-        if "limit" in self.request.query_params:
-            return super().paginate_queryset(queryset)
-        return None
-
-    def get_paginated_response(self, data):
-        if "limit" in self.request.query_params:
-            return super().get_paginated_response(data)
-        return Response(data)
-
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        if "limit" in request.query_params or "offset" in request.query_params:
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
